@@ -115,7 +115,7 @@ func printResult(expr *expression, buf *bytes.Buffer) {
 	if expr.atom != nil {
 		switch {
 		case expr.atom.boolean != nil:
-			buf.WriteString(fmt.Sprintf("%b", *expr.atom.boolean))
+			buf.WriteString(fmt.Sprintf("%t", *expr.atom.boolean))
 		case expr.atom.float != nil:
 			buf.WriteString(fmt.Sprintf("%f", *expr.atom.float))
 		case expr.atom.integer != nil:
@@ -259,31 +259,34 @@ func read(tokens []string) (*expression, []string, error) {
 			// TODO(robbiev) better error handling
 			return nil, nil, err
 		}
-		return at, poptokens, nil
+		return &expression{atom: at}, poptokens, nil
 	}
 }
 
-func readAtom(s string) (*expression, error) {
-	i, err := strconv.Atoi(s)
-	if err != nil {
-		f, err := strconv.ParseFloat(s, 64)
-		if err != nil {
-			return &expression{
-				atom: &atom{
-					symbol: &s,
-				},
-			}, nil
-		}
-		return &expression{
-			atom: &atom{
-				float: &f,
-			},
+func readAtom(s string) (*atom, error) {
+	if s == "true" || s == "false" {
+		b := s == "true"
+		return &atom{
+			boolean: &b,
 		}, nil
 	}
-	return &expression{
-		atom: &atom{
+
+	i, err := strconv.Atoi(s)
+	if err == nil {
+		return &atom{
 			integer: &i,
-		},
+		}, nil
+	}
+
+	f, err := strconv.ParseFloat(s, 64)
+	if err == nil {
+		return &atom{
+			float: &f,
+		}, nil
+	}
+
+	return &atom{
+		symbol: &s,
 	}, nil
 }
 

@@ -1,4 +1,6 @@
 (def list (func elems elems))
+(def and (func (a b) (if a (if b true false) false)))
+(def not (func (a) (if a false true)))
 (list 2 3 4)
 (list)
 (+ 1 (+ 2 (* 3 4)))
@@ -16,3 +18,6 @@
 (cons 1 (cons 2 (cons 3 (quote ()))))
 (def range (func (a b) (if (= a b) (quote ()) (cons a (range (+ a 1) b)))))
 (range 1 20)
+(and (= 1 1) (= 1 2))
+(and (= 1 1) (= 2 2))
+(not (and (= 1 1) (= 2 2)))
