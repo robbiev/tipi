@@ -8,8 +8,12 @@ import (
 	"io"
 	"log"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
+
+	"neugram.io/ng/eval/gowrap"
+	_ "neugram.io/ng/eval/gowrap/wrapbuiltin"
 )
 
 func main() {
@@ -319,5 +323,79 @@ func (e *environment) lookup(key string) *expression {
 	if e.parent != nil {
 		return e.parent.lookup(key)
 	}
-	return nil
+
+	split := strings.Split(key, ".")
+	pkg, fun := split[0], split[1]
+	stdlib := gowrap.Pkgs
+	stdlibPkg := stdlib[pkg]
+	if stdlibPkg == nil {
+		return nil
+	}
+	stdlibFun := stdlibPkg.Exports[fun]
+	if !stdlibFun.IsValid() {
+		return nil
+	}
+	if stdlibFun.Kind() != reflect.Func {
+		panic(fmt.Sprintf("%s is not a function: %v", key, stdlibFun.Kind()))
+	}
+	return &expression{
+		gofunc: func(env *environment, args []*expression) *expression {
+			var reflectArgs []reflect.Value
+			for _, a := range args {
+				var v reflect.Value
+				switch {
+				case a.atom.integer != nil:
+					v = reflect.ValueOf(*a.atom.integer)
+				case a.atom.boolean != nil:
+					v = reflect.ValueOf(*a.atom.boolean)
+				case a.atom.float != nil:
+					v = reflect.ValueOf(*a.atom.float)
+				}
+				reflectArgs = append(reflectArgs, v)
+			}
+
+			results := stdlibFun.Call(reflectArgs)
+
+			var exprResults []*expression
+			for _, r := range results {
+				switch r.Kind() {
+				case reflect.Int:
+					i := int(r.Int())
+					exprResults = append(exprResults, &expression{
+						atom: &atom{
+							integer: &i,
+						},
+					})
+				case reflect.Bool:
+					b := r.Bool()
+					exprResults = append(exprResults, &expression{
+						atom: &atom{
+							boolean: &b,
+						},
+					})
+				case reflect.Float64:
+					f := r.Float()
+					exprResults = append(exprResults, &expression{
+						atom: &atom{
+							float: &f,
+						},
+					})
+				default:
+					panic(fmt.Sprintf("%v has an unsupported type: %v", r, r.Kind()))
+				}
+			}
+
+			if len(exprResults) == 0 {
+				return nil
+			}
+
+			if len(exprResults) == 1 {
+				return exprResults[0]
+			}
+
+			return &expression{
+				expressions: exprResults,
+			}
+		},
+	}
 }
