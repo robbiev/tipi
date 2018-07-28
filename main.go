@@ -13,7 +13,9 @@ import (
 	"strings"
 
 	"neugram.io/ng/eval/gowrap"
+	"neugram.io/ng/eval/gowrap/genwrap"
 	_ "neugram.io/ng/eval/gowrap/wrapbuiltin"
+	"neugram.io/ng/gotool"
 )
 
 func main() {
@@ -63,6 +65,20 @@ func main() {
 			"do": &expression{
 				gofunc: func(env *environment, args []*expression) *expression {
 					return args[len(args)-1]
+				},
+			},
+			"import": &expression{
+				gofunc: func(env *environment, args []*expression) *expression {
+					src, err := genwrap.GenGo("github.com/robbiev/hello", "main", false)
+					if err != nil {
+						panic(fmt.Errorf("plugin: wrapper gen failed for Go package %q: %v", "github.com/robbiev/hello", err))
+					}
+					if _, err := gotool.M.Create("github.com/robbiev/hello", src); err != nil {
+						panic(err)
+					}
+
+					gowrap.Pkgs["hello"] = gowrap.Pkgs["github.com/robbiev/hello"]
+					return nil
 				},
 			},
 			">": &expression{

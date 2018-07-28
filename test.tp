@@ -22,3 +22,5 @@
 (and (= 1 1) (= 2 2))
 (not (and (= 1 1) (= 2 2)))
 (math.Max 5.0 6.0)
+(import)
+(hello.Hello)
