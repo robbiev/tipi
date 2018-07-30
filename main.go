@@ -154,6 +154,8 @@ func printResult(expr *expression, buf *bytes.Buffer) {
 			buf.WriteString(fmt.Sprintf("%d", *expr.atom.integer))
 		case expr.atom.symbol != nil:
 			buf.WriteString(*expr.atom.symbol)
+		case expr.atom.str != nil:
+			buf.WriteString(*expr.atom.str)
 		}
 
 		return
@@ -384,6 +386,8 @@ func (e *environment) lookup(key string) *expression {
 					v = reflect.ValueOf(*a.atom.boolean)
 				case a.atom.float != nil:
 					v = reflect.ValueOf(*a.atom.float)
+				case a.atom.str != nil:
+					v = reflect.ValueOf(*a.atom.str)
 				}
 				reflectArgs = append(reflectArgs, v)
 			}
@@ -412,6 +416,13 @@ func (e *environment) lookup(key string) *expression {
 					exprResults = append(exprResults, &expression{
 						atom: &atom{
 							float: &f,
+						},
+					})
+				case reflect.String:
+					s := r.String()
+					exprResults = append(exprResults, &expression{
+						atom: &atom{
+							str: &s,
 						},
 					})
 				default:
