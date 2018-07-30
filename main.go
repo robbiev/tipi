@@ -79,7 +79,11 @@ func main() {
 						panic(err)
 					}
 
-					gowrap.Pkgs["hello"] = gowrap.Pkgs[path]
+					pkg, err := gotool.M.ImportGo(path)
+					if err != nil {
+						panic(err)
+					}
+					gowrap.Pkgs[pkg.Name()] = gowrap.Pkgs[path]
 					return nil
 				},
 			},
