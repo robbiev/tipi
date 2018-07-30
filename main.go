@@ -70,15 +70,16 @@ func main() {
 			},
 			"import": &expression{
 				gofunc: func(env *environment, args []*expression) *expression {
-					src, err := genwrap.GenGo("github.com/robbiev/hello", "main", false)
+					path := *args[0].atom.str
+					src, err := genwrap.GenGo(path, "main", false)
 					if err != nil {
-						panic(fmt.Errorf("plugin: wrapper gen failed for Go package %q: %v", "github.com/robbiev/hello", err))
+						panic(fmt.Errorf("plugin: wrapper gen failed for Go package %q: %v", path, err))
 					}
-					if _, err := gotool.M.Create("github.com/robbiev/hello", src); err != nil {
+					if _, err := gotool.M.Create(path, src); err != nil {
 						panic(err)
 					}
 
-					gowrap.Pkgs["hello"] = gowrap.Pkgs["github.com/robbiev/hello"]
+					gowrap.Pkgs["hello"] = gowrap.Pkgs[path]
 					return nil
 				},
 			},
@@ -297,8 +298,10 @@ func read(tokens []lexer.Item) (*expression, []lexer.Item, error) {
 func readAtom(s lexer.Item) (*atom, error) {
 	switch s.Type {
 	case lexer.ItemString:
+		// remove surrounding double quotes
+		str := s.Value[1 : len(s.Value)-1]
 		return &atom{
-			str: &s.Value,
+			str: &str,
 		}, nil
 	case lexer.ItemInt:
 		i, _ := strconv.Atoi(s.Value)
