@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/robbiev/tipi/lexer"
 	"neugram.io/ng/eval/gowrap"
 	"neugram.io/ng/eval/gowrap/genwrap"
 	_ "neugram.io/ng/eval/gowrap/wrapbuiltin"
@@ -107,6 +108,18 @@ func main() {
 		fmt.Println("=>", text)
 		tokens := tokenize(text)
 		//fmt.Println(tokens)
+
+		var items []lexer.Item
+		{
+			l := lexer.Lex("", text)
+			items = append(items, l.NextItem())
+			for len(items) > 0 && items[len(items)-1].Type != lexer.ItemEOF {
+				items = append(items, l.NextItem())
+			}
+			items = items[:len(items)-1] // Remove EOF
+		}
+		fmt.Println(items)
+
 		program, _, err := read(tokens)
 		if err != nil {
 			log.Fatal(err)
