@@ -106,8 +106,6 @@ func main() {
 	for scan.Scan() {
 		text := scan.Text()
 		fmt.Println("=>", text)
-		tokens := tokenize(text)
-		//fmt.Println(tokens)
 
 		var items []lexer.Item
 		{
@@ -118,9 +116,9 @@ func main() {
 			}
 			items = items[:len(items)-1] // Remove EOF
 		}
-		fmt.Println(items)
+		//fmt.Println(items)
 
-		program, _, err := read(tokens)
+		program, _, err := read(items)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -265,14 +263,14 @@ func tokenize(s string) []string {
 	return strings.Fields(rightPad)
 }
 
-func read(tokens []string) (*expression, []string, error) {
+func read(tokens []lexer.Item) (*expression, []lexer.Item, error) {
 	if len(tokens) == 0 {
 		return nil, nil, errors.New("unexpected EOF")
 	}
 	token, poptokens := tokens[0], tokens[1:]
-	if token == "(" {
+	if token.Type == lexer.ItemLeftParen {
 		var mainast expression
-		for poptokens[0] != ")" {
+		for poptokens[0].Type != lexer.ItemRightParen {
 			subast, ntokens, err := read(poptokens)
 			if err != nil {
 				// TODO(robbiev) better error handling
@@ -284,7 +282,7 @@ func read(tokens []string) (*expression, []string, error) {
 		poptokens = poptokens[1:] // pop off ")"
 
 		return &mainast, poptokens, nil
-	} else if token == ")" {
+	} else if token.Type == lexer.ItemRightParen {
 		return nil, nil, errors.New("unexpected )")
 	} else {
 		at, err := readAtom(token)
@@ -296,35 +294,39 @@ func read(tokens []string) (*expression, []string, error) {
 	}
 }
 
-func readAtom(s string) (*atom, error) {
-	if s == "true" || s == "false" {
-		b := s == "true"
+func readAtom(s lexer.Item) (*atom, error) {
+	switch s.Type {
+	case lexer.ItemString:
 		return &atom{
-			boolean: &b,
+			str: &s.Value,
 		}, nil
-	}
-
-	i, err := strconv.Atoi(s)
-	if err == nil {
+	case lexer.ItemInt:
+		i, _ := strconv.Atoi(s.Value)
 		return &atom{
 			integer: &i,
 		}, nil
-	}
-
-	f, err := strconv.ParseFloat(s, 64)
-	if err == nil {
+	case lexer.ItemFloat:
+		f, _ := strconv.ParseFloat(s.Value, 64)
 		return &atom{
 			float: &f,
 		}, nil
+	case lexer.ItemBool:
+		b := s.Value == "true"
+		return &atom{
+			boolean: &b,
+		}, nil
+	case lexer.ItemIdent:
+		return &atom{
+			symbol: &s.Value,
+		}, nil
 	}
 
-	return &atom{
-		symbol: &s,
-	}, nil
+	panic("unsupported")
 }
 
 // only one field will be non-nil
 type atom struct {
+	str     *string
 	integer *int
 	boolean *bool
 	float   *float64

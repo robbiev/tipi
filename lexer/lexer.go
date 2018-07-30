@@ -28,8 +28,8 @@ const (
 	ItemRightVect
 
 	ItemIdent
+	ItemBool
 	ItemString
-	ItemChar
 	ItemFloat
 	ItemInt
 	ItemComplex
@@ -58,8 +58,8 @@ func (i ItemType) String() string {
 		return "Ident"
 	case ItemString:
 		return "String"
-	case ItemChar:
-		return "Char"
+	case ItemBool:
+		return "Bool"
 	case ItemFloat:
 		return "Float"
 	case ItemInt:
@@ -216,7 +216,7 @@ func lexWhitespace(l *Lexer) stateFn {
 		return lexRightVect
 	case r == '"':
 		return lexString
-	case r == '+' || r == '-' || ('0' <= r && r <= '9'):
+	case (r == '+' && ('0' <= l.peek() && l.peek() <= '9')) || (r == '+' && ('0' <= l.peek() && l.peek() <= '9')) || ('0' <= r && r <= '9'):
 		return lexNumber
 	case r == ';':
 		return lexComment
@@ -243,6 +243,17 @@ func lexString(l *Lexer) stateFn {
 func lexIdentifier(l *Lexer) stateFn {
 	// TODO(robbiev): modified to accept dots as a quick hack
 	for r := l.next(); isAlphaNumeric(r) || r == '.'; r = l.next() {
+		// TODO(robbiev): modified to accept bools
+		current := l.input[l.start:l.pos]
+		if current == "true" || current == "false" {
+			r = l.next()
+			if !isAlphaNumeric(r) && r != '.' {
+				l.backup()
+				l.emit(ItemBool)
+				return lexWhitespace
+			}
+			l.backup()
+		}
 	}
 	l.backup()
 
@@ -270,9 +281,10 @@ func lexNumber(l *Lexer) stateFn {
 		return l.errorf("bad number syntax: %q", l.input[l.start:l.pos])
 	}
 
-	if l.start+1 == l.pos {
-		return lexIdentifier
-	}
+	// TODO(robbiev): why is this here?
+	// if l.start+1 == l.pos {
+	// 	return lexIdentifier
+	// }
 
 	if sign := l.peek(); sign == '+' || sign == '-' {
 		// Complex: 1+2i. No spaces, must end in 'i'.
