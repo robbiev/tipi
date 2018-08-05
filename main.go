@@ -19,9 +19,22 @@ import (
 	"neugram.io/ng/gotool"
 )
 
+var macros map[string]*expression = map[string]*expression{}
+
 func main() {
 	env := &environment{
 		values: map[string]*expression{
+			// TODO(robbiev): lex question marks
+			"empty": &expression{
+				gofunc: func(env *environment, args []*expression) *expression {
+					result := len(args[0].expressions) == 0
+					return &expression{
+						atom: &atom{
+							boolean: &result,
+						},
+					}
+				},
+			},
 			"=": &expression{
 				gofunc: func(env *environment, args []*expression) *expression {
 					equal := true
@@ -66,6 +79,35 @@ func main() {
 			"do": &expression{
 				gofunc: func(env *environment, args []*expression) *expression {
 					return args[len(args)-1]
+				},
+			},
+			"first": &expression{
+				gofunc: func(env *environment, args []*expression) *expression {
+					return args[0].expressions[0]
+				},
+			},
+			"apply": &expression{
+				gofunc: func(env *environment, args []*expression) *expression {
+					return args[0].gofunc(env, args[1].expressions)
+				},
+			},
+			"rest": &expression{
+				gofunc: func(env *environment, args []*expression) *expression {
+					// TODO(robbiev): if-else need to for 'or' macro?
+					if len(args[0].expressions) > 0 {
+						return &expression{
+							expressions: args[0].expressions[1:],
+						}
+					} else {
+						return &expression{
+							expressions: nil,
+						}
+					}
+				},
+			},
+			"macro-expand": &expression{
+				gofunc: func(env *environment, args []*expression) *expression {
+					return expand(env, args[0])
 				},
 			},
 			"import": &expression{
@@ -128,18 +170,24 @@ func main() {
 			log.Fatal(err)
 		}
 
-		//printAST(program, 0)
+		expandedProgram := expand(env, program)
 
-		result := eval(env, program)
+		//printAST(expandedProgram, 0)
 
-		var b bytes.Buffer
-		printResult(result, &b)
-		fmt.Println(b.String())
+		result := eval(env, expandedProgram)
+
+		fmt.Println(toString(result))
 	}
 
 	if err := scan.Err(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func toString(expr *expression) string {
+	var b bytes.Buffer
+	printResult(expr, &b)
+	return b.String()
 }
 
 func printResult(expr *expression, buf *bytes.Buffer) {
@@ -166,7 +214,7 @@ func printResult(expr *expression, buf *bytes.Buffer) {
 	}
 
 	if expr.gofunc != nil {
-		buf.WriteString(fmt.Sprintf("gofunc-%p"))
+		buf.WriteString(fmt.Sprintf("gofunc-%p", expr.gofunc))
 		return
 	}
 
@@ -192,6 +240,11 @@ func printAST(expr *expression, indent int) {
 }
 
 func eval(env *environment, expr *expression) *expression {
+	// TODO(robbiev): only needed since expand() and def-macro returning nil there
+	if expr == nil {
+		return nil
+	}
+
 	if expr.atom != nil {
 		if expr.atom.symbol != nil {
 			return env.lookup(*expr.atom.symbol)
@@ -214,12 +267,6 @@ func eval(env *environment, expr *expression) *expression {
 			branch = falseBranch
 		}
 		return eval(env, branch)
-	} else if actorAtom != nil && *actorAtom.symbol == "first" {
-		return eval(env, expr.expressions[1]).expressions[0]
-	} else if actorAtom != nil && *actorAtom.symbol == "rest" {
-		return &expression{
-			expressions: eval(env, expr.expressions[1]).expressions[1:],
-		}
 	} else if actorAtom != nil && *actorAtom.symbol == "cons" {
 		rest := eval(env, expr.expressions[2])
 		return &expression{
@@ -258,6 +305,10 @@ func eval(env *environment, expr *expression) *expression {
 		for _, subj := range expr.expressions[1:] {
 			args = append(args, eval(env, subj))
 		}
+		// fmt.Println("proc", toString(&proc))
+		// fmt.Println("proc args", toString(&expression{
+		// 	expressions: args,
+		// }))
 		return proc.gofunc(env, args)
 	}
 
@@ -268,6 +319,56 @@ func tokenize(s string) []string {
 	leftPad := strings.Replace(s, "(", " ( ", -1)
 	rightPad := strings.Replace(leftPad, ")", " ) ", -1)
 	return strings.Fields(rightPad)
+}
+
+func expandAll(env *environment, exprs []*expression) []*expression {
+	var result []*expression
+	for _, e := range exprs {
+		result = append(result, expand(env, e))
+	}
+	return result
+}
+
+func expand(env *environment, expr *expression) *expression {
+	if expr.atom != nil {
+		return expr
+	}
+
+	actorAtom := expr.expressions[0].atom
+
+	// if actorAtom != nil && actorAtom.symbol == nil {
+	// 	fmt.Println("expand nil", toString(expr))
+	// }
+	if actorAtom != nil && *actorAtom.symbol == "quote" {
+		return expr
+	}
+
+	if actorAtom != nil && *actorAtom.symbol == "def" {
+		expr.expressions[2] = expand(env, expr.expressions[2])
+		return expr
+	}
+
+	if actorAtom != nil && *actorAtom.symbol == "func" {
+		expr.expressions[2] = expand(env, expr.expressions[2])
+		return expr
+	}
+
+	if actorAtom != nil && *actorAtom.symbol == "def-macro" {
+		// (def-macro my-name (func ...))
+		expandedFunc := expand(env, expr.expressions[2])
+		evaluatedFunc := eval(env, expandedFunc)
+		macros[*expr.expressions[1].atom.symbol] = evaluatedFunc
+		return nil
+	}
+
+	// calling a macro
+	if actorAtom != nil && macros[*actorAtom.symbol] != nil {
+		return expand(env, macros[*actorAtom.symbol].gofunc(env, expr.expressions[1:]))
+	}
+
+	return &expression{
+		expressions: expandAll(env, expr.expressions),
+	}
 }
 
 func read(tokens []lexer.Item) (*expression, []lexer.Item, error) {
@@ -363,6 +464,8 @@ func (e *environment) lookup(key string) *expression {
 	if e.parent != nil {
 		return e.parent.lookup(key)
 	}
+
+	// fmt.Println("LOOKUP", key)
 
 	split := strings.Split(key, ".")
 	pkg, fun := split[0], split[1]
