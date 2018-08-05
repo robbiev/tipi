@@ -62,6 +62,18 @@ func main() {
 					}
 				},
 			},
+			"-": &expression{
+				gofunc: func(env *environment, args []*expression) *expression {
+					sum := *args[0].atom.integer
+					for _, a := range args[1:] {
+						// TODO(robbiev) assuming integer
+						sum -= *a.atom.integer
+					}
+					return &expression{
+						atom: &atom{integer: &sum},
+					}
+				},
+			},
 			"*": &expression{
 				gofunc: func(env *environment, args []*expression) *expression {
 					sum := 1
