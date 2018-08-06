@@ -82,7 +82,7 @@
     (list
       (quote func)
       (list (first (first input)))
-      (if (empty (rest (rest (first input))))
+      (if (empty (drop 2 (first input)))
         (cons (quote do) (rest input))
         (concat (list (quote let) (drop 2 (first input))) (rest input))))
      (first (rest (first input))))))
