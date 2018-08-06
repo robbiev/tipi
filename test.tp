@@ -1,8 +1,23 @@
+;; misc examples
+(+ 1 (+ 2 (* 3 4)))
+(if (> 1 2) (* 2 4) (* 2 8))
+(quote (1 2 3))
+(quote (1 (2 3)))
+(first (quote (1 2 3)))
+(rest (quote (1 2 3)))
+(cons 1 (quote (2 3)))
+(cons 1 (cons 2 (cons 3 (quote ()))))
+
 ;; list
 (def list (func elems elems))
 (apply + (list 1 2 3))
 (list 2 3 4)
 (list)
+
+;; infix
+(def-macro infix (func infixed (list (first (rest infixed)) (first infixed) (first (rest (rest infixed))))))
+(macro-expand (quote (infix 1 + 1)))
+(infix 1 + 1)
 
 ;; defn
 (def-macro defn
@@ -55,11 +70,6 @@
 (let (a 1 b 2) (+ a b))
 (let (a 1 b 2) 5)
 
-;; infix
-(def-macro infix (func infixed (list (first (rest infixed)) (first infixed) (first (rest (rest infixed))))))
-(macro-expand (quote (infix 1 + 1)))
-(infix 1 + 1)
-
 ;; or
 (def-macro or
   (func exprs
@@ -96,22 +106,23 @@
       (cons a (range (+ a 1) b)))))
 (range 1 20)
 
+;; last
+(defn last (l)
+  (if (empty (rest l))
+    (first l)
+    (last (rest l))))
+
+(last (list 1 2 3))
+
+;; do
+(defn do a (last a))
+(do (+ 1 (+ 2 (* 3 4))) (+ 2 3))
+(do (def x 2) (* x 4))
+(do (def f (func (x) (* 2 x))) (f 10))
+(do (def max (func (x y) (if (> x y) x y))) (max 11 21))
+(quote (do (def x 2) (* x 4)))
+
 ;; interop
 (math.Max 5.0 6.0)
 ;(import "github.com/robbiev/hello")
 ;(hello.Hello)
-
-;; other examples
-(+ 1 (+ 2 (* 3 4)))
-(do (+ 1 (+ 2 (* 3 4))) (+ 2 3))
-(do (def x 2) (* x 4))
-(if (> 1 2) (* 2 4) (* 2 8))
-(do (def f (func (x) (* 2 x))) (f 10))
-(do (def max (func (x y) (if (> x y) x y))) (max 11 21))
-(quote (1 2 3))
-(quote (1 (2 3)))
-(quote (do (def x 2) (* x 4)))
-(first (quote (1 2 3)))
-(rest (quote (1 2 3)))
-(cons 1 (quote (2 3)))
-(cons 1 (cons 2 (cons 3 (quote ()))))

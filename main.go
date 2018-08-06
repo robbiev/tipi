@@ -85,21 +85,9 @@ func main() {
 					}
 				},
 			},
-			// TODO(robbiev) could be implement in lisp?
-			// "do" evaluates expressions in order and returns the final one
-			"do": &expression{
-				gofunc: func(env *environment, args []*expression) *expression {
-					return args[len(args)-1]
-				},
-			},
 			"first": &expression{
 				gofunc: func(env *environment, args []*expression) *expression {
 					return args[0].expressions[0]
-				},
-			},
-			"apply": &expression{
-				gofunc: func(env *environment, args []*expression) *expression {
-					return args[0].gofunc(env, args[1].expressions)
 				},
 			},
 			"rest": &expression{
@@ -114,6 +102,11 @@ func main() {
 							expressions: nil,
 						}
 					}
+				},
+			},
+			"apply": &expression{
+				gofunc: func(env *environment, args []*expression) *expression {
+					return args[0].gofunc(env, args[1].expressions)
 				},
 			},
 			"macro-expand": &expression{
@@ -322,12 +315,6 @@ func eval(env *environment, expr *expression) *expression {
 	}
 
 	return nil
-}
-
-func tokenize(s string) []string {
-	leftPad := strings.Replace(s, "(", " ( ", -1)
-	rightPad := strings.Replace(leftPad, ")", " ) ", -1)
-	return strings.Fields(rightPad)
 }
 
 func expandAll(env *environment, exprs []*expression) []*expression {
