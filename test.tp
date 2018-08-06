@@ -24,7 +24,13 @@
 (drop 2 (list 1 2 3 4 5))
 
 ;; take-nth
-(def take-nth (func (n l) (if (empty l) l (cons (first l) (take-nth n (drop n l))))))
+(def take-nth
+  (func (n l)
+    (if (empty l)
+      l
+      (cons
+        (first l)
+        (take-nth n (drop n l))))))
 (take-nth 2 (quote (a 1 b 2)))
 (take-nth 2 (rest (quote (a 1 b 2))))
 
