@@ -170,13 +170,13 @@ func main() {
 
 	program, remaining, err := read(items)
 	for err == nil {
-		fmt.Println("=>", toString(program))
+		fmt.Println("=>", exprToString(program))
 
 		expandedProgram := expand(env, program)
 
 		result := eval(env, expandedProgram)
 
-		fmt.Println(toString(result))
+		fmt.Println(exprToString(result))
 
 		if len(remaining) == 0 {
 			break
@@ -190,13 +190,13 @@ func main() {
 	}
 }
 
-func toString(expr *expression) string {
+func exprToString(expr *expression) string {
 	var b bytes.Buffer
-	printResult(expr, &b)
+	writeExprToBuf(expr, &b)
 	return b.String()
 }
 
-func printResult(expr *expression, buf *bytes.Buffer) {
+func writeExprToBuf(expr *expression, buf *bytes.Buffer) {
 	if expr == nil {
 		buf.WriteString("nil")
 		return
@@ -226,7 +226,7 @@ func printResult(expr *expression, buf *bytes.Buffer) {
 
 	buf.WriteByte('(')
 	for i, e := range expr.expressions {
-		printResult(e, buf)
+		writeExprToBuf(e, buf)
 		if i < len(expr.expressions)-1 {
 			buf.WriteByte(' ')
 		}
@@ -311,8 +311,8 @@ func eval(env *environment, expr *expression) *expression {
 		for _, subj := range expr.expressions[1:] {
 			args = append(args, eval(env, subj))
 		}
-		// fmt.Println("proc", toString(&proc))
-		// fmt.Println("proc args", toString(&expression{
+		// fmt.Println("proc", exprToString(&proc))
+		// fmt.Println("proc args", exprToString(&expression{
 		// 	expressions: args,
 		// }))
 		return proc.gofunc(env, args)
@@ -337,7 +337,7 @@ func expand(env *environment, expr *expression) *expression {
 	actorAtom := expr.expressions[0].atom
 
 	// if actorAtom != nil && actorAtom.symbol == nil {
-	// 	fmt.Println("expand nil", toString(expr))
+	// 	fmt.Println("expand nil", exprToString(expr))
 	// }
 	if actorAtom != nil && *actorAtom.symbol == "quote" {
 		return expr
