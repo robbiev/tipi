@@ -528,6 +528,18 @@ func (e *environment) lookup(key string) *expression {
 							str: &s,
 						},
 					})
+				case reflect.Interface:
+					// FIXME(robbiev): converting nil to empty string
+					if r.IsNil() {
+						var empty string
+						exprResults = append(exprResults, &expression{
+							atom: &atom{
+								str: &empty,
+							},
+						})
+					} else {
+						panic(fmt.Sprintf("%v has an unsupported type: %v", r, r.Kind()))
+					}
 				default:
 					panic(fmt.Sprintf("%v has an unsupported type: %v", r, r.Kind()))
 				}
