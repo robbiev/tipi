@@ -39,21 +39,19 @@
 (concat (quote (1 2 3)) (quote (4 5 6)))
 
 ;; drop
-(def drop
-  (func (n l)
-    (if (= 0 n)
-      l
-      (drop (- n 1) (rest l)))))
+(defn drop (n l)
+  (if (= 0 n)
+    l
+    (drop (- n 1) (rest l))))
 (drop 2 (list 1 2 3 4 5))
 
 ;; take-nth
-(def take-nth
-  (func (n l)
-    (if (empty l)
-      l
-      (cons
-        (first l)
-        (take-nth n (drop n l))))))
+(defn take-nth (n l)
+  (if (empty l)
+    l
+    (cons
+      (first l)
+      (take-nth n (drop n l)))))
 (take-nth 2 (quote (a 1 b 2)))
 (take-nth 2 (rest (quote (a 1 b 2))))
 
@@ -90,20 +88,19 @@
 (or false false true)
 
 ;; and
-(def and (func (a b) (if a (if b true false) false)))
+(defn and (a b) (if a (if b true false) false))
 (and (= 1 1) (= 1 2))
 (and (= 1 1) (= 2 2))
 
 ;; not
-(def not (func (a) (if a false true)))
+(defn not (a) (if a false true))
 (not (and (= 1 1) (= 2 2)))
 
 ;; range
-(def range
-  (func (a b)
-    (if (= a b)
-      (quote ())
-      (cons a (range (+ a 1) b)))))
+(defn range (a b)
+  (if (= a b)
+    (quote ())
+    (cons a (range (+ a 1) b))))
 (range 1 20)
 
 ;; last
