@@ -84,8 +84,8 @@
 
 ;; interop
 (math.Max 5.0 6.0)
-(import "github.com/robbiev/hello")
-(hello.Hello)
+;(import "github.com/robbiev/hello")
+;(hello.Hello)
 
 ;; other examples
 (+ 1 (+ 2 (* 3 4)))
