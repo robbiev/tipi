@@ -163,5 +163,6 @@ glob
 ;; interop
 (math.Max 5.0 6.0)
 (fmt.Println "Hello, tipi!")
+(fmt.Sprintf "%s, %s!" "Hello" "tipi")
 ;(import "github.com/robbiev/hello")
 ;(hello.Hello)
