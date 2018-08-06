@@ -209,7 +209,7 @@ func printResult(expr *expression, buf *bytes.Buffer) {
 		case expr.atom.symbol != nil:
 			buf.WriteString(*expr.atom.symbol)
 		case expr.atom.str != nil:
-			buf.WriteString(*expr.atom.str)
+			buf.WriteString(fmt.Sprintf("%q", *expr.atom.str))
 		}
 
 		return

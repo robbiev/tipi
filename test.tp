@@ -15,7 +15,12 @@
 (list)
 
 ;; infix
-(def-macro infix (func infixed (list (first (rest infixed)) (first infixed) (first (rest (rest infixed))))))
+(def-macro infix
+  (func infixed
+    (list
+      (first (rest infixed))
+      (first infixed)
+      (first (rest (rest infixed))))))
 (macro-expand (quote (infix 1 + 1)))
 (infix 1 + 1)
 
@@ -27,6 +32,22 @@
       name
       (list (quote func) args body))))
 (macro-expand (quote (defn sum (a b) (+ a b))))
+
+;; last
+(defn last (l)
+  (if (empty (rest l))
+    (first l)
+    (last (rest l))))
+
+(last (list 1 2 3))
+
+;; do
+(defn do a (last a))
+(do (+ 1 (+ 2 (* 3 4))) (+ 2 3))
+(do (def x 2) (* x 4))
+(do (def f (func (x) (* 2 x))) (f 10))
+(do (def max (func (x y) (if (> x y) x y))) (max 11 21))
+(quote (do (def x 2) (* x 4)))
 
 ;; concat
 (defn concat (x y)
@@ -86,9 +107,27 @@
 (or false)
 (or true false)
 (or false false true)
+(macro-expand (quote
+  (or
+    (do (def glob 1) false)
+    (do (def glob (+ 10 glob)) true)
+    (do (def glob (+ 5 glob)) false))))
+(or
+  (do (def glob 1) false)
+  (do (def glob (+ 10 glob)) true)
+  (do (def glob (+ 5 glob)) false))
+glob
 
 ;; and
-(defn and (a b) (if a (if b true false) false))
+(def-macro and
+  (func exprs
+    (if (empty exprs)
+      true
+      (list (quote if) (first exprs)
+        (cons (quote and) (rest exprs))
+        false))))
+(macro-expand (quote (and (= 1 1) (= 1 2))))
+(macro-expand (quote (and (= 1 1) (= 2 2))))
 (and (= 1 1) (= 1 2))
 (and (= 1 1) (= 2 2))
 
@@ -102,22 +141,6 @@
     (quote ())
     (cons a (range (+ a 1) b))))
 (range 1 20)
-
-;; last
-(defn last (l)
-  (if (empty (rest l))
-    (first l)
-    (last (rest l))))
-
-(last (list 1 2 3))
-
-;; do
-(defn do a (last a))
-(do (+ 1 (+ 2 (* 3 4))) (+ 2 3))
-(do (def x 2) (* x 4))
-(do (def f (func (x) (* 2 x))) (f 10))
-(do (def max (func (x y) (if (> x y) x y))) (max 11 21))
-(quote (do (def x 2) (* x 4)))
 
 ;; interop
 (math.Max 5.0 6.0)
