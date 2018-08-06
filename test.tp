@@ -78,15 +78,16 @@
 
 ;; let
 (def-macro let
-  (func (vars body)
+  (func input
     (list
       (quote apply)
-      (list (quote func) (take-nth 2 vars) body)
-      (list (quote quote) (take-nth 2 (rest vars))))))
+      (list (quote func) (take-nth 2 (first input)) (cons (quote do) (rest input)))
+      (list (quote quote) (take-nth 2 (rest (first input)))))))
 (macro-expand (quote (let (a 1) (list a))))
 (macro-expand (quote (let (a 1 b 2) (+ a b))))
+(macro-expand (quote (let (a 1 b 2) (+ a b) (+ a b 10))))
 (let (a 1) (+ 1 a))
-(let (a 1 b 2) (+ a b))
+(let (a 1 b 2) (+ a b) (+ a b 10))
 (let (a 1 b 2) 5)
 
 ;; or
