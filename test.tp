@@ -77,11 +77,15 @@
 (take-nth 2 (rest (quote (a 1 b 2))))
 
 ;; let
-(def-macro let
-  (func input
-    (cons
-      (list (quote func) (take-nth 2 (first input)) (cons (quote do) (rest input)))
-      (take-nth 2 (rest (first input))))))
+(def-macro let (func input
+  (list
+    (list
+      (quote func)
+      (list (first (first input)))
+      (if (empty (rest (rest (first input))))
+        (cons (quote do) (rest input))
+        (concat (list (quote let) (drop 2 (first input))) (rest input))))
+     (first (rest (first input))))))
 (macro-expand (quote (let (a 1) (list a))))
 (macro-expand (quote (let (a 1 b 2) (+ a b))))
 (macro-expand (quote (let (a 1 b 2) (+ a b) (+ a b 10))))
@@ -93,8 +97,15 @@
 (let (a 1 b 2) 5)
 (let (a 1
       b (+ 1 1)) (+ a b))
-;(let (a 1
-;      b (+ 1 a)) (+ a b))
+(macro-expand (quote (let (a 1 b 2 c 3) (+ a b) (+ a b c))))
+(macro-expand (quote
+  (let (a 1
+        b (+ 1 a)) (+ a b))))
+(let (a 1
+      b (+ 1 a)) (+ a b))
+(let (a 1
+      b (+ 1 a)
+      c (+ 1 b)) (+ 1 2 3) (+ a b c))
 
 ;; or
 (def-macro or
