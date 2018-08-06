@@ -1,11 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"reflect"
@@ -154,45 +153,43 @@ func main() {
 		},
 	}
 
-	var input io.Reader
-	if len(os.Args) > 1 {
-		input = strings.NewReader(os.Args[1] + "\n")
-	} else {
-		input = os.Stdin
-	}
-
-	scan := bufio.NewScanner(input)
-	for scan.Scan() {
-		text := scan.Text()
-		fmt.Println("=>", text)
+	{
+		b, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		var items []lexer.Item
 		{
-			l := lexer.Lex("", text)
+			l := lexer.Lex("", string(b))
 			items = append(items, l.NextItem())
 			for len(items) > 0 && items[len(items)-1].Type != lexer.ItemEOF {
 				items = append(items, l.NextItem())
 			}
 			items = items[:len(items)-1] // Remove EOF
 		}
-		//fmt.Println(items)
+		// fmt.Println(items)
 
-		program, _, err := read(items)
+		program, remaining, err := read(items)
+		for err == nil {
+			fmt.Println("=>", toString(program))
+
+			expandedProgram := expand(env, program)
+
+			result := eval(env, expandedProgram)
+
+			fmt.Println(toString(result))
+
+			if len(remaining) == 0 {
+				break
+			}
+
+			program, remaining, err = read(remaining)
+		}
+
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		expandedProgram := expand(env, program)
-
-		//printAST(expandedProgram, 0)
-
-		result := eval(env, expandedProgram)
-
-		fmt.Println(toString(result))
-	}
-
-	if err := scan.Err(); err != nil {
-		log.Fatal(err)
 	}
 }
 
