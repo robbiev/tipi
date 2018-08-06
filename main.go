@@ -146,43 +146,47 @@ func main() {
 		},
 	}
 
+	// detect whether data is getting piped in
+	stat, _ := os.Stdin.Stat()
+	if (stat.Mode() & os.ModeCharDevice) != 0 {
+		log.Fatal("provide a file")
+	}
+
+	b, err := ioutil.ReadAll(os.Stdin)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var items []lexer.Item
 	{
-		b, err := ioutil.ReadAll(os.Stdin)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		var items []lexer.Item
-		{
-			l := lexer.Lex("", string(b))
+		l := lexer.Lex("", string(b))
+		items = append(items, l.NextItem())
+		for len(items) > 0 && items[len(items)-1].Type != lexer.ItemEOF {
 			items = append(items, l.NextItem())
-			for len(items) > 0 && items[len(items)-1].Type != lexer.ItemEOF {
-				items = append(items, l.NextItem())
-			}
-			items = items[:len(items)-1] // Remove EOF
 		}
-		// fmt.Println(items)
+		items = items[:len(items)-1] // Remove EOF
+	}
+	// fmt.Println(items)
 
-		program, remaining, err := read(items)
-		for err == nil {
-			fmt.Println("=>", toString(program))
+	program, remaining, err := read(items)
+	for err == nil {
+		fmt.Println("=>", toString(program))
 
-			expandedProgram := expand(env, program)
+		expandedProgram := expand(env, program)
 
-			result := eval(env, expandedProgram)
+		result := eval(env, expandedProgram)
 
-			fmt.Println(toString(result))
+		fmt.Println(toString(result))
 
-			if len(remaining) == 0 {
-				break
-			}
-
-			program, remaining, err = read(remaining)
+		if len(remaining) == 0 {
+			break
 		}
 
-		if err != nil {
-			log.Fatal(err)
-		}
+		program, remaining, err = read(remaining)
+	}
+
+	if err != nil {
+		log.Fatal(err)
 	}
 }
 
