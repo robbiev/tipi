@@ -24,6 +24,27 @@ func main() {
 	env := &environment{
 		values: map[string]*expression{
 			// TODO(robbiev): lex question marks
+			"panic": &expression{
+				gofunc: func(env *environment, args []*expression) *expression {
+					if len(args) > 0 && args[0].atom != nil && args[0].atom.str != nil {
+						panic(exprToString(args[0]))
+					}
+					panic("unknown reason")
+				},
+			},
+			"str": &expression{
+				gofunc: func(env *environment, args []*expression) *expression {
+					var result string
+					if len(args) > 0 {
+						result = exprToString(args[0])
+					}
+					return &expression{
+						atom: &atom{
+							str: &result,
+						},
+					}
+				},
+			},
 			"empty": &expression{
 				gofunc: func(env *environment, args []*expression) *expression {
 					result := len(args[0].expressions) == 0
@@ -41,8 +62,12 @@ func main() {
 						a1 := args[i-1]
 						a2 := args[i]
 
-						// TODO(robbiev) assuming integer
-						equal = equal && *a1.atom.integer == *a2.atom.integer
+						// TODO(robbiev) assuming data types
+						if a1.atom.integer != nil {
+							equal = equal && *a1.atom.integer == *a2.atom.integer
+						} else if a1.atom.str != nil {
+							equal = equal && *a1.atom.str == *a2.atom.str
+						}
 					}
 					return &expression{
 						atom: &atom{boolean: &equal},
